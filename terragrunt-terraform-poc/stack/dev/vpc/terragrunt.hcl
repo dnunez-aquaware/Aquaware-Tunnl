@@ -1,9 +1,12 @@
-include "env" {
+include "root" {
 
-  path = find_in_parent_folders()
+  path = find_in_parent_folders("root.hcl")
 
 }
 
+locals {
+  env = read_terragrunt_config(find_in_parent_folders("env.hcl"))
+}
 
 terraform {
 
@@ -12,12 +15,19 @@ terraform {
 }
 
 
-inputs = {
+inputs = merge(
+  local.env.inputs,
+  {
+    vpc_cidr = "10.100.0.0/16"
 
-  vpc_cidr = "10.100.0.0/16"
+    public_subnets = [
+      "10.100.1.0/24",
+      "10.100.2.0/24"
+    ]
 
-  public_subnet_cidr = "10.110.0.0/24"
-
-  private_subnet_cidr = "10.120.0.0/24"
-
-}
+    private_subnets = [
+      "10.100.10.0/24",
+      "10.100.20.0/24"
+    ]
+  }
+)

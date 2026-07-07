@@ -1,9 +1,12 @@
-include "env" {
+include "root" {
 
-  path = find_in_parent_folders()
+  path = find_in_parent_folders("root.hcl")
 
 }
 
+locals {
+  env = read_terragrunt_config(find_in_parent_folders("env.hcl"))
+}
 
 terraform {
 
@@ -19,8 +22,9 @@ dependency "vpc" {
 }
 
 
-inputs = {
-
-  vpc_id = dependency.vpc.outputs.vpc_id
-
-}
+inputs = merge(
+  local.env.inputs,
+  {
+    vpc_id = dependency.vpc.outputs.vpc_id
+  }
+)
