@@ -12,7 +12,7 @@ variable "environment" {
 variable "bucket_name" {
   description = "Terraform state bucket"
   type        = string
-  default     = "bucket_state_tunnl"
+  default     = "bucket-state-tunnl"
 }
 
 variable "lock_table_name" {
