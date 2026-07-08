@@ -1,0 +1,7 @@
+import "tfconfig/v2" as tfconfig
+
+main = rule {
+
+    tfconfig.providers["aws"].config["region"] is "us-east-1"
+
+}
