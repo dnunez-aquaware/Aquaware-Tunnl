@@ -4,7 +4,6 @@ on:
   pull_request:
     branches:
       - main
-
   push:
     branches:
       - main
@@ -13,19 +12,15 @@ permissions:
   contents: read
 
 jobs:
-
   terraform-plan:
-
     if: github.event_name == 'pull_request'
-
     runs-on: ubuntu-latest
 
     defaults:
       run:
-        working-directory: terraform
+        working-directory: Day02/code/stack/terraform
 
     steps:
-
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -55,5 +50,28 @@ jobs:
 
       - name: Run OPA Policies
         run: |
-          conftest test tfplan.json \
-            --policy ../policies/opa
+          conftest test tfplan.json --policy ../../policies/opa
+
+  terraform-apply:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    environment:
+      name: production
+
+    defaults:
+      run:
+        working-directory: Day02/code/stack/terraform
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
