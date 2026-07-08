@@ -1,16 +1,9 @@
 import "tfplan/v2" as tfplan
 
 main = rule {
-
     all tfplan.resource_changes as _, rc {
-
-        rc.type is "aws_s3_bucket_public_access_block" implies (
-
-            rc.change.after.block_public_acls and
-            rc.change.after.block_public_policy
-
-        )
-
+        rc.type != "aws_s3_bucket_public_access_block" or (
+            (rc.change.after.block_public_acls else false) and
+            (rc.change.after.block_public_policy else false))
     }
-
 }
