@@ -1,6 +1,7 @@
-package terraform.s3
+package main
 
-deny[msg] {
+deny contains msg if {
+
     resource := input.resource_changes[_]
 
     resource.type == "aws_s3_bucket_public_access_block"
@@ -10,7 +11,9 @@ deny[msg] {
     msg := "S3 buckets must block public ACLs."
 }
 
-deny[msg] {
+
+deny contains msg if {
+
     resource := input.resource_changes[_]
 
     resource.type == "aws_s3_bucket_public_access_block"
