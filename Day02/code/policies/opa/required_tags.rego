@@ -15,7 +15,7 @@ deny contains msg if {
 
     resource.type == "aws_s3_bucket"
 
-    tags := object.get(resource.change.after, "tags", {})
+    tags := object.get(resource.change.after, "tags_all", {})
 
     required := required_tags[_]
 
