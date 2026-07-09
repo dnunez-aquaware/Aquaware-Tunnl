@@ -46,11 +46,7 @@ workflows:
         - plan
 
         - run: |
-            VERSION=$(curl -s https://api.github.com/repos/open-policy-agent/conftest/releases/latest | jq -r .tag_name)
-            curl -L -o conftest.tar.gz https://github.com/open-policy-agent/conftest/releases/download/${VERSION}/conftest_${VERSION#v}_Linux_x86_64.tar.gz
-            tar -xzf conftest.tar.gz
-            mv conftest /usr/local/bin/
-            terraform show -json $PLANFILE > tfplan.json
+            /home/atlantis/.atlantis/bin/terraform1.13.0 show -json $PLANFILE > tfplan.json
             conftest test tfplan.json --policy ../../policies/opa
 
     # Apply deshabilitado intencionalmente: sin steps, cualquier intento
