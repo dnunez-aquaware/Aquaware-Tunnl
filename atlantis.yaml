@@ -39,9 +39,9 @@ workflows:
             extra_args:
               - "-backend-config=../../bootstrap/backend.hcl"
 
-        - fmt
+        - run: terraform fmt -check
 
-        - validate
+        - run: terraform validate
 
         - plan
 
@@ -49,7 +49,7 @@ workflows:
             VERSION=$(curl -s https://api.github.com/repos/open-policy-agent/conftest/releases/latest | jq -r .tag_name)
             curl -L -o conftest.tar.gz https://github.com/open-policy-agent/conftest/releases/download/${VERSION}/conftest_${VERSION#v}_Linux_x86_64.tar.gz
             tar -xzf conftest.tar.gz
-            sudo mv conftest /usr/local/bin/
+            mv conftest /usr/local/bin/
             terraform show -json $PLANFILE > tfplan.json
             conftest test tfplan.json --policy ../../policies/opa
 
