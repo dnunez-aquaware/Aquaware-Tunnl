@@ -10,6 +10,7 @@ on:
       - dnunez-aquaware
 
 permissions:
+  #token que permite autenticar github con aws y que github(miworkflow) tenga credenciales temporales
   id-token: write
   contents: read
 
@@ -25,7 +26,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        
+        #una vez con credenciales este rol tiene 2 politicas la trust que es la puerta de acceso y dice si github puede asumir este role y la permission que le permite ejecutar comandos de terraform
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
