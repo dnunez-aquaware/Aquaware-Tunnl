@@ -7,7 +7,7 @@ on:
 
   pull_request:
     branches:
-      - main   
+      - master   
 
 permissions:
   contents: read
@@ -67,7 +67,7 @@ jobs:
           conftest test tfplan.json --policy ../../policies/opa
 
   terraform-apply:
-    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    if: github.event_name == 'pull_request' && github.base_ref == 'master'
     runs-on: ubuntu-latest
     
 
