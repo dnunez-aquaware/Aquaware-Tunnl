@@ -37,7 +37,7 @@ jobs:
 
 
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -backend-config=../env/backend.hcl
 
 
       - name: Terraform Format
