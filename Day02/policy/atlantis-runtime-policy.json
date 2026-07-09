@@ -28,12 +28,8 @@
         "Sid": "S3ResourceReadOnly",
         "Effect": "Allow",
         "Action": [
-          "s3:GetBucketPolicy",
-          "s3:GetBucketPublicAccessBlock",
-          "s3:GetBucketTagging",
-          "s3:GetBucketAcl",
-          "s3:ListBucket",
-          "s3:ListAllMyBuckets"
+          "s3:Get*",
+          "s3:List*"
         ],
         "Resource": "*"
       }
