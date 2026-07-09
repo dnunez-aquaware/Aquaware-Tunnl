@@ -1,0 +1,5 @@
+repos:
+  - id: github.com/dnunez-aquaware/Aquaware-Tunnl
+    allowed_overrides:
+      - workflow
+    allow_custom_workflows: true
