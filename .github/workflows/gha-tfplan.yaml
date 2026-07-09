@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   terraform-plan:
-    if: github.event_name == 'push'
+    if: github.ref == 'refs/heads/dnunez-aquaware' #dentro de todos los pushes que llegaron por on solo ejecuta el de la rama dnunez-aquaware
     runs-on: ubuntu-latest
     
 
