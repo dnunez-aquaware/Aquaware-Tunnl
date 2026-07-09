@@ -1,5 +1,6 @@
+#imagen oficial de atlantis
 FROM ghcr.io/runatlantis/atlantis:latest
-
+#comandos necesarios con root
 USER root
 
 RUN apk add --no-cache \
@@ -18,6 +19,9 @@ COPY repos.yaml /etc/atlantis/repos.yaml
 
 USER atlantis
 
+#inicializando el contenedor siempre se ejecutara atlantis eso indica el entrypoint
+#este es el argumento principal del comando ENTRYPOINT + CMD ejemplo atlantis(entrypoint) server(CMD) --repo......
 ENTRYPOINT ["atlantis"]
 
+#inicializa el servidor de atlantis con "atlantis server" y le dice toma esta config de repos.yaml
 CMD ["server", "--repo-config=/etc/atlantis/repos.yaml"]

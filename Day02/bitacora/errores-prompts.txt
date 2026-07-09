@@ -1,0 +1,453 @@
+============================================================
+ATLANTIS + AWS APP RUNNER
+BITACORA DE ERRORES Y CORRECCIONES
+============================================================
+
+
+============================================================
+ERROR 1: CONFUSION ENTRE ACCESS ROLE E INSTANCE ROLE
+============================================================
+
+ERROR:
+
+App Runner no podía obtener la imagen privada desde ECR.
+
+Síntoma:
+
+El servicio App Runner fallaba al intentar iniciar el contenedor.
+
+Causa:
+
+Se había configurado incorrectamente el rol.
+
+Existían dos roles diferentes:
+
+1) atlantis-apprunner-access-role
+
+Responsabilidad:
+Permitir que AWS App Runner descargue la imagen desde ECR.
+
+2) atlantis-instance-role
+
+Responsabilidad:
+Permitir que Atlantis, una vez ejecutándose, acceda a:
+
+- Secrets Manager
+- S3 Terraform backend
+- DynamoDB locks
+
+
+CORRECCION:
+
+Crear el Access Role:
+
+
+aws iam create-role \
+--role-name atlantis-apprunner-access-role \
+--assume-role-policy-document \
+file://apprunner-access-trust-policy.json
+
+
+Asignar permiso para ECR:
+
+
+aws iam attach-role-policy \
+--role-name atlantis-apprunner-access-role \
+--policy-arn \
+arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess
+
+
+El Instance Role quedó separado para permisos runtime.
+
+
+============================================================
+ERROR 2: ARN INCOMPLETO EN SECRETS MANAGER
+============================================================
+
+ERROR:
+
+App Runner no podía resolver los secretos configurados.
+
+
+Configuración incorrecta:
+
+RuntimeEnvironmentSecrets:
+
+ATLANTIS_GH_TOKEN:
+
+atlantis/github-token
+
+
+Resultado:
+
+App Runner no podía obtener el secreto.
+
+
+CAUSA:
+
+App Runner RuntimeEnvironmentSecrets necesita el ARN completo
+del secreto de Secrets Manager.
+
+
+CORRECCION:
+
+Usar:
+
+
+arn:aws:secretsmanager:us-east-1:711387135481:secret:atlantis/github-token-XXXXXXXX
+
+
+Ejemplo:
+
+
+"RuntimeEnvironmentSecrets": {
+
+"ATLANTIS_GH_TOKEN":
+"arn:aws:secretsmanager:us-east-1:711387135481:secret:atlantis/github-token-hCoJBA",
+
+"ATLANTIS_GH_WEBHOOK_SECRET":
+"arn:aws:secretsmanager:us-east-1:711387135481:secret:atlantis/webhook-secret-pRBSgZ"
+
+}
+
+
+============================================================
+ERROR 3: INSTANCE ROLE SIN PERMISOS PARA LEER SECRETOS
+============================================================
+
+ERROR:
+
+Atlantis iniciaba pero no podía obtener:
+
+- GitHub token
+- Webhook secret
+
+
+CAUSA:
+
+El role:
+
+atlantis-instance-role
+
+no tenía:
+
+secretsmanager:GetSecretValue
+
+
+CORRECCION:
+
+
+Crear policy:
+
+
+atlantis-secrets-policy.json
+
+
+Contenido:
+
+
+{
+ "Version":"2012-10-17",
+ "Statement":[
+  {
+   "Effect":"Allow",
+   "Action":[
+    "secretsmanager:GetSecretValue"
+   ],
+   "Resource":[
+    "arn:aws:secretsmanager:us-east-1:711387135481:secret:atlantis/github-token-*",
+    "arn:aws:secretsmanager:us-east-1:711387135481:secret:atlantis/webhook-secret-*"
+   ]
+  }
+ ]
+}
+
+
+Aplicar:
+
+
+aws iam put-role-policy \
+--role-name atlantis-instance-role \
+--policy-name atlantis-secrets-policy \
+--policy-document file://atlantis-secrets-policy.json
+
+
+
+
+============================================================
+ERROR 4: CONFTES NO PODIA INSTALARSE EN /usr/local/bin
+============================================================
+
+ERROR:
+
+
+mv: can't rename 'conftest': Permission denied
+
+
+Log:
+
+
+mv conftest /usr/local/bin/
+
+
+CAUSA:
+
+El contenedor Atlantis ejecutaba como:
+
+
+USER atlantis
+
+
+Ese usuario no tenía permisos para escribir:
+
+
+/usr/local/bin
+
+
+El workflow intentaba instalar herramientas durante la ejecución,
+pero el usuario runtime no tenía privilegios root.
+
+
+CORRECCION:
+
+Mover la instalación de Conftest al Dockerfile.
+
+
+Antes:
+
+Workflow:
+
+curl conftest
+tar
+mv
+
+
+Después:
+
+Dockerfile:
+
+
+USER root
+
+RUN descargar conftest
+RUN mv conftest /usr/local/bin/
+
+
+USER atlantis
+
+
+La herramienta queda instalada durante el build
+y Atlantis solamente la ejecuta.
+
+
+
+============================================================
+ERROR 5: VERSION DIFERENTE DE TERRAFORM EN PLAN Y SHOW
+============================================================
+
+ERROR:
+
+
+Error:
+
+Plan read error:
+
+plan file was created by Terraform 1.13.0,
+but this is 1.14.9;
+
+
+CAUSA:
+
+Atlantis ejecutaba:
+
+
+terraform1.13.0 plan
+
+
+pero el workflow ejecutaba:
+
+
+terraform show
+
+
+usando el binario default del contenedor.
+
+
+Entonces:
+
+Crear plan:
+
+Terraform 1.13.0
+
+Leer plan:
+
+Terraform 1.14.9
+
+
+Terraform no permite leer planes entre versiones diferentes.
+
+
+CORRECCION:
+
+
+Cambiar:
+
+
+terraform show -json $PLANFILE
+
+
+por:
+
+
+/home/atlantis/.atlantis/bin/terraform1.13.0 show \
+-json $PLANFILE > tfplan.json
+
+
+Ahora:
+
+plan = Terraform 1.13.0
+
+show = Terraform 1.13.0
+
+
+
+============================================================
+ERROR 6: APP RUNNER REINICIABA ATLANTIS DURANTE EJECUCION
+============================================================
+
+ERROR:
+
+
+Log:
+
+
+Received interrupt.
+Waiting for in-progress operations to complete
+
+
+CAUSA:
+
+Se ejecutó:
+
+
+aws apprunner start-deployment
+
+
+App Runner creó un nuevo deployment.
+
+El contenedor antiguo recibió SIGTERM.
+
+
+No era un error de Terraform ni Atlantis.
+
+
+CORRECCION:
+
+Esperar que termine el deployment.
+
+
+Ver estado:
+
+
+aws apprunner list-services \
+--query 'ServiceSummaryList[?ServiceName==`atlantis`]'
+
+
+
+
+
+
+============================================================
+ERROR 7: ATLANTIS USABA TERRAFORM VERSION NO INSTALADA
+============================================================
+
+ERROR:
+
+
+Log:
+
+
+could not find terraform version 1.13.0
+
+
+CAUSA:
+
+El atlantis.yaml definía:
+
+
+terraform_version: v1.13.0
+
+
+pero la imagen no tenía esa versión.
+
+
+CORRECCION:
+
+Atlantis descarga automáticamente:
+
+
+/home/atlantis/.atlantis/bin/terraform1.13.0
+
+
+No era necesario instalar manualmente.
+
+
+
+============================================================
+ERROR 8: WORKFLOW OPA FALLABA POR TFPLAN VACIO
+============================================================
+
+ERROR:
+
+
+Error:
+
+
+parser unmarshal:
+unexpected end of JSON input
+
+
+CAUSA:
+
+El comando:
+
+
+terraform show -json $PLANFILE > tfplan.json
+
+
+fallaba antes por incompatibilidad de versiones.
+
+
+Entonces:
+
+
+tfplan.json
+
+
+quedaba vacío.
+
+
+Conftest intentaba leer JSON inválido.
+
+
+CORRECCION:
+
+
+Primero corregir Terraform show:
+
+
+/home/atlantis/.atlantis/bin/terraform1.13.0 show \
+-json $PLANFILE > tfplan.json
+
+
+Luego ejecutar:
+
+
+conftest test tfplan.json \
+--policy ../../policies/opa
+
+
+
+============================================================
+FIN DE BITACORA DE ERRORES
+============================================================

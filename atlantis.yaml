@@ -9,28 +9,25 @@ projects:
   - name: terraform-demo
 
     dir: Day02/code/stack/terraform
-
+    #version especifica del proyecto terraform-demo
     terraform_version: v1.13.0
-
+    #Este es el que llama al " plan: " dentro del terraform-workflow:
     autoplan:
       enabled: true
       when_modified:
         - "**/*.tf"
         - "**/*.tfvars"
         - "**/.terraform.lock.hcl"
-
-    # Bloqueamos el apply a nivel de proyecto: exige una aprobación
-    # imposible de satisfacer automáticamente por este equipo, dejando
-    # el workflow como "solo plan" en la práctica.
     apply_requirements:
       - approved
       - mergeable
-
+    #workflow que ejecutara atlantis, se ubica abajo
     workflow: terraform-workflow
 
 workflows:
   terraform-workflow:
-
+    #workflow equivalente a jobs
+    #compara es la rama base main con la rama head test-atlantis en la que estoy si detecta un cambio en alguno de esos archivos *.tf ejecuta el :plan
     plan:
       steps:
         - run: aws sts get-caller-identity
@@ -48,8 +45,5 @@ workflows:
         - run: |
             /home/atlantis/.atlantis/bin/terraform1.13.0 show -json $PLANFILE > tfplan.json
             conftest test tfplan.json --policy ../../policies/opa
-
-    # Apply deshabilitado intencionalmente: sin steps, cualquier intento
-    # de "atlantis apply" no ejecutará nada.
     apply:
       steps: []

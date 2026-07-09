@@ -1,0 +1,390 @@
+ATLANTIS - BOOTSTRAP AWS APP RUNNER
+====================================
+
+Objetivo:
+Levantar Atlantis en AWS App Runner usando:
+- Imagen Docker privada en ECR
+- Roles IAM separados
+- Secrets Manager
+- Webhook GitHub
+
+
+--------------------------------------------------
+1. CREAR REPOSITORIO ECR
+--------------------------------------------------
+
+Creamos un repositorio privado donde almacenaremos
+nuestra imagen Docker personalizada de Atlantis.
+
+Atlantis original:
+ghcr.io/runatlantis/atlantis
+
+Nuestra imagen:
+711387135481.dkr.ecr.us-east-1.amazonaws.com/atlantis
+
+
+aws ecr create-repository \
+--repository-name atlantis \
+--region us-east-1
+
+
+
+--------------------------------------------------
+2. LOGIN DE DOCKER CONTRA ECR
+--------------------------------------------------
+
+Permite que Docker pueda autenticarse contra ECR
+para poder subir imágenes.
+
+
+aws ecr get-login-password \
+--region us-east-1 | \
+docker login \
+--username AWS \
+--password-stdin \
+711387135481.dkr.ecr.us-east-1.amazonaws.com
+
+
+
+--------------------------------------------------
+3. CONSTRUIR IMAGEN PERSONALIZADA DE ATLANTIS
+--------------------------------------------------
+
+La imagen agrega herramientas que Atlantis necesita:
+
+- aws-cli
+- jq
+- curl
+- conftest
+
+
+docker build \
+-t atlantis .
+
+
+
+--------------------------------------------------
+4. ETIQUETAR IMAGEN PARA ECR
+--------------------------------------------------
+
+Docker necesita saber a qué repositorio remoto
+pertenece la imagen.
+
+
+docker tag \
+atlantis:latest \
+711387135481.dkr.ecr.us-east-1.amazonaws.com/atlantis:latest
+
+
+
+--------------------------------------------------
+5. SUBIR IMAGEN A ECR
+--------------------------------------------------
+
+
+docker push \
+711387135481.dkr.ecr.us-east-1.amazonaws.com/atlantis:latest
+
+
+
+--------------------------------------------------
+6. CREAR SECRET PARA GITHUB TOKEN
+--------------------------------------------------
+
+Atlantis necesita un token para comunicarse
+con GitHub.
+
+Lo usa para:
+- leer Pull Requests
+- escribir comentarios
+- actualizar checks
+
+
+aws secretsmanager create-secret \
+--name atlantis/github-token \
+--secret-string "TOKEN_GITHUB"
+
+
+
+--------------------------------------------------
+7. CREAR WEBHOOK SECRET
+--------------------------------------------------
+
+Este secreto valida que los eventos vienen
+realmente desde GitHub.
+
+
+Generar secreto:
+
+
+openssl rand -hex 32
+
+Este secreto se guarda en 2 lugares tanto en github como en secretos de aws que usara atlantis
+
+Guardar resultado:
+
+
+aws secretsmanager create-secret \
+--name atlantis/webhook-secret \
+--secret-string "SECRET_GENERADO"
+
+
+
+--------------------------------------------------
+8. CREAR ROLE ACCESS PARA APP RUNNER
+--------------------------------------------------
+
+Este role NO es Atlantis.
+
+Lo usa AWS App Runner para poder descargar
+la imagen privada desde ECR.
+
+
+Crear archivo trust policy:
+
+
+apprunner-access-trust-policy.json
+
+
+Contenido:
+
+{
+ "Version":"2012-10-17",
+ "Statement":[
+  {
+   "Effect":"Allow",
+   "Principal":{
+    "Service":"build.apprunner.amazonaws.com"
+   },
+   "Action":"sts:AssumeRole"
+  }
+ ]
+}
+
+
+
+Crear role:
+
+
+aws iam create-role \
+--role-name atlantis-apprunner-access-role \
+--assume-role-policy-document \
+file://apprunner-access-trust-policy.json
+
+
+
+Asignar permiso para ECR:
+
+
+aws iam attach-role-policy \
+--role-name atlantis-apprunner-access-role \
+--policy-arn \
+arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess
+
+AWSAppRunnerServicePolicyForECRAccess -->Esta politica permite descargar todo lo necesario de una imagen
+
+
+--------------------------------------------------
+9. CREAR ROLE INSTANCE PARA ATLANTIS
+--------------------------------------------------
+
+Este sí lo usa el contenedor Atlantis.
+
+Permite:
+
+- leer Secrets Manager
+- acceder al backend Terraform
+- usar S3
+- usar DynamoDB locks
+
+
+Crear trust policy:
+
+
+atlantis-instance-trust.json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Principal": { "Service": "tasks.apprunner.amazonaws.com" },
+        "Action": "sts:AssumeRole"
+      }
+    ]
+  }
+
+
+Crear role:
+
+
+aws iam create-role \
+--role-name atlantis-instance-role \
+--assume-role-policy-document \
+file://atlantis-instance-trust.json
+
+
+
+--------------------------------------------------
+10. AGREGAR PERMISOS AL INSTANCE ROLE
+--------------------------------------------------
+
+Crear policy:
+
+
+atlantis-runtime-policy.json
+
+
+
+Ejemplo:
+
+ver en la seccion de  policy
+
+
+
+Aplicar:
+
+
+aws iam put-role-policy \
+--role-name atlantis-instance-role \
+--policy-name atlantis-runtime-policy \
+--policy-document file://atlantis-runtime-policy.json
+
+
+--------------------------------------------------
+10.5 CONFIGURAR SECRETOS EN APP RUNNER
+--------------------------------------------------
+
+Los permisos del instance role permiten leer
+Secrets Manager.
+
+Ahora App Runner debe mapear esos secretos
+como variables de entorno del contenedor.
+
+
+Ejemplo:
+
+ATLANTIS_GH_TOKEN
+        |
+        |
+        v
+Secrets Manager:
+atlantis/github-token
+
+
+ATLANTIS_GH_WEBHOOK_SECRET
+        |
+        |
+        v
+Secrets Manager:
+atlantis/webhook-secret
+
+
+Esto se configura en:
+
+instance-config.json
+
+
+RuntimeEnvironmentSecrets
+
+aws iam put-role-policy \
+--role-name atlantis-instance-role \
+--policy-name atlantis-secrets-policy \
+--policy-document file://atlantis-secrets-policy.json
+
+
+--------------------------------------------------
+11. CREAR SERVICIO APP RUNNER
+--------------------------------------------------
+
+App Runner será el servidor donde vive Atlantis.
+
+Necesita:
+
+- imagen ECR
+- access role para leer ECR
+- instance role para ejecutar Atlantis
+
+
+aws apprunner create-service \
+--service-name atlantis \
+--source-configuration file://source-config.json \
+--instance-configuration file://instance-config.json
+
+
+
+--------------------------------------------------
+12. OBTENER URL DE ATLANTIS
+--------------------------------------------------
+
+
+aws apprunner list-services \
+--query \
+'ServiceSummaryList[?ServiceName==`atlantis`].ServiceUrl' \
+--output table
+
+
+
+Resultado:
+
+
+xxxxx.us-east-1.awsapprunner.com
+
+
+
+El webhook será:
+
+
+https://xxxxx.us-east-1.awsapprunner.com/events
+
+
+
+--------------------------------------------------
+13. CONFIGURAR WEBHOOK EN GITHUB
+--------------------------------------------------
+
+Repositorio:
+
+dnunez-aquaware/Aquaware-Tunnl
+
+
+Settings
+
+→ Webhooks
+
+Payload URL:
+
+
+https://xxxxx.us-east-1.awsapprunner.com/events
+
+
+Secret:
+
+mismo valor guardado en:
+
+Secrets Manager:
+
+atlantis/webhook-secret
+
+
+
+--------------------------------------------------
+14. VERIFICAR ATLANTIS
+--------------------------------------------------
+
+
+aws apprunner list-services \
+--query \
+'ServiceSummaryList[?ServiceName==`atlantis`].{Status:Status,Url:ServiceUrl}' \
+--output table
+
+
+
+--------------------------------------------------
+15. VER LOGS DE APP RUNNER
+--------------------------------------------------
+
+
+aws apprunner list-operations \
+--service-arn ARN_DEL_SERVICIO
+
+
