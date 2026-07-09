@@ -5,6 +5,7 @@ resource "aws_s3_bucket" "good_bucket" {
     Name        = "good-bucket"
     Environment = var.environment
     Owner       = "platform-team"
+    CostCenter  = "challengeA"
   }
 }
 
@@ -59,6 +60,7 @@ resource "aws_security_group" "good_sg" {
     Name        = "good-sg"
     Environment = var.environment
     Owner       = "platform-team"
+    CostCenter  = "challengeA"
   }
 }
 
@@ -70,6 +72,7 @@ resource "aws_instance" "good_instance" {
     Name        = "good-instance"
     Environment = var.environment
     Owner       = "platform-team"
+    CostCenter  = "challengeA"
   }
 }
 
@@ -99,5 +102,6 @@ resource "aws_iam_policy" "good_policy" {
   tags = {
     Environment = var.environment
     Owner       = "platform-team"
+    CostCenter  = "challengeA"
   }
 }

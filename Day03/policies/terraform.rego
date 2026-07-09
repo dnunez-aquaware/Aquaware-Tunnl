@@ -66,6 +66,21 @@ deny contains msg if {
         [region],
     )
 }
+#-----------------------------------------------------CHALLENGE-------------------------------------------
+deny contains msg if {
+    resource := input.resource_changes[_]
+
+    resource.change.actions[_] == "create"
+
+    not non_taggable_resources[resource.type]
+
+    not resource.change.after.tags.CostCenter
+
+    msg := sprintf(
+        "Resource %s is missing required tag: CostCenter",
+        [resource.address],
+    )
+}
 
 # ============================================================
 # Punto 5 - S3 Production Security Policies
