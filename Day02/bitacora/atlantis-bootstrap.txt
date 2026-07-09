@@ -387,4 +387,7 @@ aws apprunner list-services \
 aws apprunner list-operations \
 --service-arn ARN_DEL_SERVICIO
 
+aws logs tail "/aws/apprunner/atlantis/c3ed98d40a5b4a749b63017f21fe0025/application" \
+  --follow \
+  --format short
 
