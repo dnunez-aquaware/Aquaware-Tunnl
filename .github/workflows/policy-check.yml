@@ -9,6 +9,9 @@ on:
     branches:
       - dnunez-aquaware
 
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   terraform-opa:
@@ -22,7 +25,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
+        
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::711387135481:role/github-actions-terraform-day02
+          aws-region: us-east-1
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
