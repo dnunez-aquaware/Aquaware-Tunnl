@@ -1,0 +1,60 @@
+name: Terraform OPA Policy Check
+
+on:
+  pull_request:
+    branches:
+      - main
+
+  push:
+    branches:
+      - dnunez-aquaware
+
+
+jobs:
+  terraform-opa:
+    name: Terraform Plan + OPA Policy Check
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: Day03/terraform
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+
+      - name: Install Conftest
+        run: |
+          wget https://github.com/open-policy-agent/conftest/releases/download/v0.56.0/conftest_0.56.0_Linux_x86_64.tar.gz
+          tar xzf conftest_0.56.0_Linux_x86_64.tar.gz
+          sudo mv conftest /usr/local/bin
+          conftest --version
+
+
+      - name: Terraform Init
+        run: terraform init
+
+
+      - name: Terraform Format
+        run: terraform fmt -check
+
+
+      - name: Terraform Validate
+        run: terraform validate
+
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+
+
+      - name: Export Terraform Plan JSON
+        run: terraform show -json tfplan > tfplan.json
+
+
+      - name: Run OPA Policies with Conftest
+        run: conftest test tfplan.json --policy ../policies

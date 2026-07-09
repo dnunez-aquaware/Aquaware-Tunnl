@@ -26,7 +26,7 @@ projects:
 workflows:
   terraform-workflow:
     #workflow equivalente a jobs
-    #compara es la rama base main con la rama head test-atlantis en la que estoy si detecta un cambio en alguno de esos archivos *.tf ejecuta el :plan
+    #compara es la rama base main con la rama head test-atlantis en la que estoy si detecta un cambio en alguno de esos archivos *.tf ejecuta el plan:
     plan:
       steps:
         - run: aws sts get-caller-identity
@@ -40,7 +40,7 @@ workflows:
         - run: terraform validate
 
         - plan
-
+        
         - run: |
             /home/atlantis/.atlantis/bin/terraform1.13.0 show -json $PLANFILE > tfplan.json
             conftest test tfplan.json --policy ../../policies/opa
