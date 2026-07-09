@@ -19,7 +19,6 @@ projects:
         - "**/*.tfvars"
         - "**/.terraform.lock.hcl"
     apply_requirements:
-      - approved
       - mergeable
     #workflow que ejecutara atlantis, se ubica abajo
     workflow: terraform-workflow
@@ -46,4 +45,5 @@ workflows:
             /home/atlantis/.atlantis/bin/terraform1.13.0 show -json $PLANFILE > tfplan.json
             conftest test tfplan.json --policy ../../policies/opa
     apply:
-      steps: []
+      steps:
+        - apply
