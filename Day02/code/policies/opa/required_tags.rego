@@ -1,4 +1,4 @@
-package terraform.tags
+package main
 
 required_tags := {
     "Owner",
@@ -9,17 +9,17 @@ required_tags := {
     "ManagedBy"
 }
 
-deny[msg] {
+deny contains msg if {
 
     resource := input.resource_changes[_]
 
     resource.type == "aws_s3_bucket"
 
-    tags := resource.change.after.tags
+    tags := object.get(resource.change.after, "tags_all", {})
 
     required := required_tags[_]
 
-    not tags[required]
+    not object.get(tags, required, null)
 
     msg := sprintf(
         "Bucket %s is missing required tag '%s'.",

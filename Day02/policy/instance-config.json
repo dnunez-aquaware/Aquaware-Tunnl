@@ -1,0 +1,21 @@
+{
+    "Cpu": "1 vCPU",
+    "Memory": "2 GB",
+  
+    "InstanceRoleArn":
+    "arn:aws:iam::711387135481:role/atlantis-instance-role",
+  
+    "RuntimeEnvironmentSecrets": {
+      "ATLANTIS_GH_TOKEN":
+      "arn:aws:secretsmanager:us-east-1:711387135481:secret:atlantis/github-token-hCoJBA",
+  
+      "ATLANTIS_GH_WEBHOOK_SECRET":
+      "arn:aws:secretsmanager:us-east-1:711387135481:secret:atlantis/webhook-secret-pRBSgZ"
+    },
+  
+    "RuntimeEnvironmentVariables": {
+      "ATLANTIS_GH_USER": "dnunez",
+      "ATLANTIS_REPO_ALLOWLIST": "github.com/dnunez-aquaware/Aquaware-Tunnl",
+      "ATLANTIS_PORT": "4141"
+    }
+  }

@@ -1,0 +1,15 @@
+{
+    "ImageRepository": {
+      "ImageIdentifier": "711387135481.dkr.ecr.us-east-1.amazonaws.com/atlantis:latest",
+      "ImageRepositoryType": "ECR",
+      "ImageConfiguration": {
+        "Port": "4141"
+      }
+    },
+  
+    "AuthenticationConfiguration": {
+      "AccessRoleArn": "arn:aws:iam::711387135481:role/atlantis-apprunner-access-role"
+    },
+  
+    "AutoDeploymentsEnabled": true
+  }

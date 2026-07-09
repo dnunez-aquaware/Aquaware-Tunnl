@@ -1,0 +1,41 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Sid": "TerraformBackendS3",
+        "Effect": "Allow",
+        "Action": [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:ListBucket"
+        ],
+        "Resource": [
+          "arn:aws:s3:::bucket-state-tunnl-adm",
+          "arn:aws:s3:::bucket-state-tunnl-adm/*"
+        ]
+      },
+      {
+        "Sid": "TerraformBackendLocking",
+        "Effect": "Allow",
+        "Action": [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:DeleteItem"
+        ],
+        "Resource": "arn:aws:dynamodb:us-east-1:711387135481:table/table_lock_tunnl"
+      },
+      {
+        "Sid": "S3ResourceReadOnly",
+        "Effect": "Allow",
+        "Action": [
+          "s3:GetBucketPolicy",
+          "s3:GetBucketPublicAccessBlock",
+          "s3:GetBucketTagging",
+          "s3:GetBucketAcl",
+          "s3:ListBucket",
+          "s3:ListAllMyBuckets"
+        ],
+        "Resource": "*"
+      }
+    ]
+  }

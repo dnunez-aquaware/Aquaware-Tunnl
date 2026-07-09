@@ -13,8 +13,16 @@ terraform {
 
 provider "aws" {
   region = "us-east-1"
-
-  
+  default_tags {
+    tags = {
+      Owner       = "dnunez"
+      CostCenter  = "bootcamp"
+      Environment = "training"
+      Service     = "bucket"
+      Project     = "day02-tunnl"
+      ManagedBy   = "terraform"
+    }
+  }
 }
 
 /*

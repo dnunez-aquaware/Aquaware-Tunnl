@@ -1,17 +1,13 @@
 import "tfplan/v2" as tfplan
 
 main = rule {
-
     all tfplan.resource_changes as _, rc {
-
-        rc.type is "aws_s3_bucket" implies (
-
-            rc.change.after.tags["Owner"] else "" is not "" and
-            rc.change.after.tags["Environment"] else "" is not "" and
-            rc.change.after.tags["Project"] else "" is not ""
-
-        )
-
+        rc.type != "aws_s3_bucket" or (
+            (rc.change.after.tags_all["Owner"] else "") != "" and
+            (rc.change.after.tags_all["CostCenter"] else "") != "" and
+            (rc.change.after.tags_all["Environment"] else "") != "" and
+            (rc.change.after.tags_all["Service"] else "") != "" and
+            (rc.change.after.tags_all["Project"] else "") != "" and
+            (rc.change.after.tags_all["ManagedBy"] else "") != "")
     }
-
 }
