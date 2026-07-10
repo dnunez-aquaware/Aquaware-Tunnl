@@ -1,0 +1,51 @@
+name: Day04 OpenTofu CI
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  tofu:
+
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: Day04/terraform
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install OpenTofu
+        run: |
+          wget https://get.opentofu.org/install-opentofu.sh
+          chmod +x install-opentofu.sh
+          ./install-opentofu.sh --install-method standalone
+
+      #una vez con credenciales este rol tiene 2 politicas la trust que es la puerta de acceso y dice si github puede asumir este role y la permission que le permite ejecutar comandos de terraform
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::711387135481:role/github-actions-terraform-day02
+          aws-region: us-east-1
+
+      - name: Init
+        run: |
+          tofu init \
+            -backend-config=../env/backend.hcl
+
+      - name: Format
+        run: tofu fmt -check -recursive
+
+      - name: Validate
+        run: tofu validate
+
+      - name: Plan
+        run: tofu plan -input=false
