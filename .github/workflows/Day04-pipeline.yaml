@@ -3,7 +3,9 @@ name: Day04 OpenTofu CI
 on:
   pull_request:
     branches:
-      - main
+      - master
+    paths:
+      - 'Day04/**'
 
 jobs:
   tofu:

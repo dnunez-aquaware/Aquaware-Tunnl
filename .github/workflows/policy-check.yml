@@ -3,11 +3,15 @@ name: Terraform OPA Policy Check
 on:
   pull_request:
     branches:
-      - main
+      - master
+    paths:
+      - 'Day03/**'
 
   push:
     branches:
       - dnunez-aquaware
+    paths:
+      - 'Day03/**'
 
 permissions:
   #token que permite autenticar github con aws y que github(miworkflow) tenga credenciales temporales
