@@ -6,6 +6,11 @@ on:
       - master
     paths:
       - 'Day04/**'
+  push:
+    branches:
+      - dnunez-aquaware
+    paths:
+      - 'Day04/**'
 
 jobs:
   tofu:
