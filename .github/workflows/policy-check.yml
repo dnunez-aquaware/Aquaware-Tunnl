@@ -1,0 +1,69 @@
+name: Terraform OPA Policy Check
+
+on:
+  pull_request:
+    branches:
+      - main
+
+  push:
+    branches:
+      - dnunez-aquaware
+
+permissions:
+  #token que permite autenticar github con aws y que github(miworkflow) tenga credenciales temporales
+  id-token: write
+  contents: read
+
+jobs:
+  terraform-opa:
+    name: Terraform Plan + OPA Policy Check
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: Day03/terraform
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        #una vez con credenciales este rol tiene 2 politicas la trust que es la puerta de acceso y dice si github puede asumir este role y la permission que le permite ejecutar comandos de terraform
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::711387135481:role/github-actions-terraform-day02
+          aws-region: us-east-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+
+      - name: Install Conftest
+        run: |
+          wget https://github.com/open-policy-agent/conftest/releases/download/v0.56.0/conftest_0.56.0_Linux_x86_64.tar.gz
+          tar xzf conftest_0.56.0_Linux_x86_64.tar.gz
+          sudo mv conftest /usr/local/bin
+          conftest --version
+
+
+      - name: Terraform Init
+        run: terraform init -backend-config=../env/backend.hcl
+
+
+      - name: Terraform Format
+        run: terraform fmt -check
+
+
+      - name: Terraform Validate
+        run: terraform validate
+
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+
+
+      - name: Export Terraform Plan JSON
+        run: terraform show -json tfplan > tfplan.json
+
+
+      - name: Run OPA Policies with Conftest
+        run: conftest test tfplan.json --policy ../policies

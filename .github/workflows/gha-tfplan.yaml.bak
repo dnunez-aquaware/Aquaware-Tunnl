@@ -7,8 +7,8 @@ on:
 
   pull_request:
     branches:
-      - master   
-
+      - master
+         
 permissions:
   contents: read
   id-token: write
